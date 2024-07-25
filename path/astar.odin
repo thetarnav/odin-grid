@@ -27,6 +27,37 @@ Pos_With_Cost :: struct {
 	cost: f32,
 }
 
+/*
+	NW N NE
+	 W    E
+	SW S SE
+*/
+Direction :: enum u8 {
+	N,   E, S,   W,
+	NE, SE, SW, NW,
+}
+
+DIRECTIONS :: [Direction]grid.Coord{
+	.N  = { 0, -1},
+	.E  = { 1,  0},
+	.S  = { 0,  1},
+	.W  = {-1,  0},
+	.NE = { 1, -1},
+	.SE = { 1,  1},
+	.SW = {-1,  1},
+	.NW = {-1, -1},
+}
+
+DIRECTIONS_WITH_COST :: [Direction]Pos_With_Cost{
+	.N  = {{ 0, -1}, 1},
+	.E  = {{ 1,  0}, 1},
+	.S  = {{ 0,  1}, 1},
+	.W  = {{-1,  0}, 1},
+	.NE = {{ 1, -1}, math.SQRT_TWO},
+	.SE = {{ 1,  1}, math.SQRT_TWO},
+	.SW = {{-1,  1}, math.SQRT_TWO},
+	.NW = {{-1, -1}, math.SQRT_TWO},
+}
 
 heuristic :: grid.distance
 
@@ -84,7 +115,7 @@ open_list_pop :: proc (a: ^Astar) -> (pos: grid.Coord, ok: bool) {
 	if a.open_list_len > 0 {
 		a.open_list_len -= 1
 		pos = a.open_list_buf[a.open_list_len].pos
-		ok = true
+		ok  = true
 	}
 	return
 }
@@ -149,18 +180,7 @@ astar :: proc (
 			return true
 		}
 
-		DIRECTIONS :: [8]Pos_With_Cost{
-			{{-1,  0}, 1},
-			{{ 1,  0}, 1},
-			{{ 0, -1}, 1},
-			{{ 0,  1}, 1},
-			{{-1, -1}, math.SQRT_TWO},
-			{{ 1,  1}, math.SQRT_TWO},
-			{{ 1, -1}, math.SQRT_TWO},
-			{{-1,  1}, math.SQRT_TWO},
-		}
-
-		for d in DIRECTIONS {
+		for d in DIRECTIONS_WITH_COST {
 			neighbor := current + d.pos
 
 			if grid.inside(walls, neighbor) && !grid.get(walls, neighbor) {
@@ -191,17 +211,6 @@ jps :: proc (
 		if current == goal {
 			astar_reconstruct_path(path, a, loc)
 			return true
-		}
-
-		DIRECTIONS :: [8]grid.Coord{
-			{-1,  0},
-			{ 1,  0},
-			{ 0, -1},
-			{ 0,  1},
-			{-1, -1},
-			{ 1, -1},
-			{-1,  1},
-			{ 1,  1},
 		}
 
 		for d in DIRECTIONS {
@@ -297,6 +306,56 @@ jps :: proc (
 					return p
 				}
 			}
+		}
+	}
+
+	return false
+}
+
+long_jump :: proc (
+	path      : ^[dynamic]grid.Coord,
+	walls     : grid.Grid(bool),
+	init, goal: grid.Coord,
+	allocator := context.temp_allocator,
+	loc       := #caller_location,
+) -> bool {
+
+	a := astar_make(walls, init, goal, allocator, loc)
+
+	for current in open_list_pop(&a) {
+
+		if current == goal {
+			astar_reconstruct_path(path, a, loc)
+			return true
+		}
+
+		for d in DIRECTIONS_WITH_COST {
+
+			p, cost := current+d.pos, d.cost
+
+			if !grid.inside(walls, p) || grid.get(walls, p) {
+				continue
+			}
+
+			for {
+				new_p, new_cost := p+d.pos, cost+d.cost
+
+				if !grid.inside(walls, new_p) || grid.get(walls, new_p) {
+					break
+				}
+
+				p, cost = new_p, new_cost
+
+				if p == goal                      ||
+				   (p.x == goal.x && d.pos.x != 0) ||
+				   (p.y == goal.y && d.pos.y != 0) ||
+				   (grid.are_diagonal(p, goal) && !grid.are_diagonal(current, goal))
+				{
+					break
+				}
+			}
+
+			astar_add_step(&a, current, p, cost)
 		}
 	}
 

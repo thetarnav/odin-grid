@@ -101,3 +101,7 @@ distance :: proc (a, b: Coord) -> f32 {
 manhattan_distance :: proc (a, b: Coord) -> int {
 	return abs(a.x - b.x) + abs(a.y - b.y)
 }
+
+are_diagonal :: proc (a, b: Coord) -> bool {
+	return abs(a.x - b.x) == abs(a.y - b.y)
+}
