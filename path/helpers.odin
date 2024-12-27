@@ -1,10 +1,10 @@
-//+private package
 package grid_path
 
 import "base:runtime"
 
 
-set_len :: proc (arr: ^$A/[dynamic]$E, l: int, loc := #caller_location) -> runtime.Allocator_Error {
+@(private="package")
+_dynamic_set_len :: proc (arr: ^$A/[dynamic]$E, l: int, loc := #caller_location) -> runtime.Allocator_Error {
 
 	if arr == nil {
 		return nil

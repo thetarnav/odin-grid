@@ -97,7 +97,7 @@ import grid ".."
 				init = grid.to_xy(walls, i)
 			case:
 				p := grid.to_xy(walls, i)
-				set_len(&expected, max(len(expected), int(cell-2)))
+				_dynamic_set_len(&expected, max(len(expected), int(cell-2)))
 				#no_bounds_check expected[cell-3] = p
 			}
 		}
