@@ -115,7 +115,7 @@ set_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: 
 }
 
 set_idx :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T, loc := #caller_location) #no_bounds_check {
-    runtime.bounds_check_error_loc(loc, idx, len(grid^))
+    runtime.bounds_check_error_loc(loc, i, len(grid^))
 	grid.data[i] = v
 }
 set_idx_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T) -> (ok: bool) {

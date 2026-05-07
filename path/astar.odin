@@ -103,7 +103,7 @@ astar_make :: proc (
 	allocator := context.allocator,
 	loc       := #caller_location,
 ) -> (
-	a: Astar,
+	a:   Astar,
 	err: runtime.Allocator_Error,
 ) #optional_allocator_error
 {
