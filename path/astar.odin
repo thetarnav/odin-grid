@@ -156,7 +156,7 @@ astar_reconstruct_path :: proc (path: ^[dynamic]grid.Coord, a: Astar, loc := #ca
 	p := a.goal
 	for p != a.init {
 		append(path, p, loc=loc)
-		p = grid.get(a.came_from, p)
+		p = grid.get(a.came_from, p, loc=loc)
 	}
 
 	slice.reverse(path[:])
