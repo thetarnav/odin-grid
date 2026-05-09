@@ -9,7 +9,6 @@ import grid ".."
 
 
 Astar :: struct {
-	walls        : grid.Grid(bool),
 	// cells to move from initial position
 	costs_g      : grid.Grid(f32),
 	// distance to goal position
@@ -76,7 +75,6 @@ astar_init :: proc (
 
 	a.goal      = goal
 	a.init      = init
-	a.walls     = walls
 	a.costs_g   = grid.make(f32       , walls.size, allocator, loc) or_return
 	a.costs_f   = grid.make(f32       , walls.size, allocator, loc) or_return
 	a.came_from = grid.make(grid.Coord, walls.size, allocator, loc) or_return
@@ -162,6 +160,9 @@ astar_reconstruct_path :: proc (path: ^[dynamic]grid.Coord, a: Astar, loc := #ca
 	slice.reverse(path[:])
 }
 
+walls_can_go :: #force_inline proc "contextless" (walls: grid.Grid(bool), p: grid.Coord) -> bool {
+    return !(grid.get_safe(walls, p) or_else true)
+}
 
 astar :: proc (
 	path      : ^[dynamic]grid.Coord,
@@ -182,10 +183,9 @@ astar :: proc (
 
 		for d in DIRECTIONS_WITH_COST {
 			neighbor := current + d.pos
-
-			if grid.inside(walls, neighbor) && !grid.get(walls, neighbor) {
-				astar_add_step(&a, current, neighbor, d.cost)
-			}
+            if walls_can_go(walls, neighbor) {
+                astar_add_step(&a, current, neighbor, d.cost)
+            }
 		}
 	}
 
@@ -224,7 +224,7 @@ jps :: proc (
 		
 		for p := p+d;; p += d {
 
-			if !grid.inside(walls, p) || grid.get(walls, p) {
+			if !walls_can_go(walls, p) {
 				return nil
 			}
 
@@ -322,42 +322,39 @@ long_jump :: proc (
 
 	a := astar_make(walls, init, goal, allocator, loc)
 
-	for current in open_list_pop(&a) {
+	for curr in open_list_pop(&a) {
 
-		if current == goal {
+		if curr == goal {
 			astar_reconstruct_path(path, a, loc)
 			return true
 		}
 
 		for d in DIRECTIONS_WITH_COST {
 
-			p, cost := current+d.pos, d.cost
+			p, cost := curr+d.pos, d.cost
 
-			if !grid.inside(walls, p) || grid.get(walls, p) {
-				continue
-			}
+            walls_can_go(walls, p) or_continue
 
 			for {
 				new_p, new_cost := p+d.pos, cost+d.cost
 
-				if !grid.inside(walls, new_p) || grid.get(walls, new_p) {
-					break
-				}
+                walls_can_go(walls, new_p) or_break
 
 				p, cost = new_p, new_cost
 
-				if p == goal                      ||
+				if p == goal                       ||
 				   (p.x == goal.x && d.pos.x != 0) ||
 				   (p.y == goal.y && d.pos.y != 0) ||
-				   (grid.are_diagonal(p, goal) && !grid.are_diagonal(current, goal))
+				   (grid.are_diagonal(p, goal) && !grid.are_diagonal(curr, goal))
 				{
 					break
 				}
 			}
 
-			astar_add_step(&a, current, p, cost)
+			astar_add_step(&a, curr, p, cost)
 		}
 	}
 
 	return false
 }
+
