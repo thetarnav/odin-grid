@@ -12,7 +12,7 @@ Grid :: struct ($T: typeid) {
 	using size: [2]int,
 }
 
-Coord :: distinct [2]int
+Coord :: [2]int
 
 @require_results
 make_empty :: proc (
@@ -140,7 +140,7 @@ len :: #force_inline proc "contextless" (grid: Grid($T)) -> int {
 }
 
 @require_results
-slice :: #force_inline proc "contextless" (grid: ^Grid($T)) -> []T {
+slice :: #force_inline proc "contextless" (grid: Grid($T)) -> []T {
 	return grid.data[:grid.x*grid.y]
 }
 
@@ -149,7 +149,7 @@ zero :: proc (grid: ^Grid($T)) {
 }
 
 fill :: proc (grid: ^Grid($T), v: T) {
-	slice_pkg.fill(slice(grid), v)
+	slice_pkg.fill(slice(grid^), v)
 }
 
 @require_results
