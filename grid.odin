@@ -188,3 +188,35 @@ next_surrounding_cell :: proc "contextless" (#no_broadcast p: Coord) -> Coord {
     unreachable()
 }
 
+/*
+	NW N NE
+	 W    E
+	SW S SE
+*/
+Direction :: enum u8 {
+	N,   E, S,   W,
+	NE, SE, SW, NW,
+}
+
+DIRECTIONS            :: [8]Direction{
+	.N,   .E, .S,   .W,
+	.NE, .SE, .SW, .NW,
+}
+DIRECTIONS_ORTHOGONAL :: [4]Direction{
+	.N,   .E, .S,   .W,
+}
+DIRECTIONS_DIAGNOAL   :: [4]Direction{
+	.NE, .SE, .SW, .NW,
+}
+
+DIRECTION_VECTORS :: [Direction][2]int{
+	.N  = { 0, -1},
+	.E  = { 1,  0},
+	.S  = { 0,  1},
+	.W  = {-1,  0},
+	.NE = { 1, -1},
+	.SE = { 1,  1},
+	.SW = {-1,  1},
+	.NW = {-1, -1},
+}
+
