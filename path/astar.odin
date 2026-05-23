@@ -221,8 +221,8 @@ jps :: proc (
 	}
 
 	jump :: proc (walls: grid.Grid(bool), p, d, goal: grid.Coord) -> Maybe(grid.Coord) {
-		
-		for p := p+d;; p += d {
+        p := p
+		for p = p+d;; p += d {
 
 			if !walls_can_go(walls, p) {
 				return nil
