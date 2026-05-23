@@ -145,7 +145,7 @@ slice :: #force_inline proc "contextless" (grid: Grid($T)) -> []T {
 }
 
 zero :: proc (grid: ^Grid($T)) {
-	slice_pkg.zero(slice(grid))
+	slice_pkg.zero(slice(grid^))
 }
 
 fill :: proc (grid: ^Grid($T), v: T) {
