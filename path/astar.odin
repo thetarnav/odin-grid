@@ -161,7 +161,7 @@ astar_reconstruct_path :: proc (path: ^[dynamic]grid.Coord, a: Astar, loc := #ca
 }
 
 walls_can_go :: #force_inline proc "contextless" (walls: grid.Grid(bool), p: grid.Coord) -> bool {
-    return !(grid.get_safe(walls, p) or_else true)
+	return !(grid.get_safe(walls, p) or_else true)
 }
 
 astar :: proc (
@@ -183,9 +183,9 @@ astar :: proc (
 
 		for d in DIRECTIONS_WITH_COST {
 			neighbor := current + d.pos
-            if walls_can_go(walls, neighbor) {
-                astar_add_step(&a, current, neighbor, d.cost)
-            }
+			if walls_can_go(walls, neighbor) {
+				astar_add_step(&a, current, neighbor, d.cost)
+			}
 		}
 	}
 
@@ -221,7 +221,7 @@ jps :: proc (
 	}
 
 	jump :: proc (walls: grid.Grid(bool), p, d, goal: grid.Coord) -> Maybe(grid.Coord) {
-        p := p
+		p := p
 		for p = p+d;; p += d {
 
 			if !walls_can_go(walls, p) {
@@ -282,7 +282,7 @@ jps :: proc (
 				    grid.get   (walls, {p.x    , p.y-1})  &&
 				   !grid.get   (walls, {p.x+d.x, p.y-1}))
 				{
-					return p 
+					return p
 				}
 
 			case { 0, -1},
@@ -333,12 +333,12 @@ long_jump :: proc (
 
 			p, cost := curr+d.pos, d.cost
 
-            walls_can_go(walls, p) or_continue
+			walls_can_go(walls, p) or_continue
 
 			for {
 				new_p, new_cost := p+d.pos, cost+d.cost
 
-                walls_can_go(walls, new_p) or_break
+				walls_can_go(walls, new_p) or_break
 
 				p, cost = new_p, new_cost
 

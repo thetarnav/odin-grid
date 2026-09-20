@@ -72,54 +72,54 @@ coord    :: to_xy
 
 @require_results
 get :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord, loc := #caller_location) -> T #no_bounds_check {
-    runtime.bounds_check_error_loc(loc, p.x, grid.x)
-    runtime.bounds_check_error_loc(loc, p.y, grid.y)
+	runtime.bounds_check_error_loc(loc, p.x, grid.x)
+	runtime.bounds_check_error_loc(loc, p.y, grid.y)
 	return grid.data[p.x + p.y * grid.x]
 }
 @require_results
 get_safe :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> (cell: T, ok: bool) {
-    inside(grid, p) or_return
+	inside(grid, p) or_return
 	return grid.data[p.x + p.y * grid.x], true
 }
 
 @require_results
 ptr :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, loc := #caller_location) -> ^T #no_bounds_check {
-    runtime.bounds_check_error_loc(loc, p.x, grid.x)
-    runtime.bounds_check_error_loc(loc, p.y, grid.y)
+	runtime.bounds_check_error_loc(loc, p.x, grid.x)
+	runtime.bounds_check_error_loc(loc, p.y, grid.y)
 	return &grid.data[p.x + p.y * grid.x]
 }
 @require_results
 ptr_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord) -> (cell: ^T, ok: bool) {
-    inside(grid^, p) or_return
+	inside(grid^, p) or_return
 	return &grid.data[p.x + p.y * grid.x], true
 }
 @require_results
 ptr_idx :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, loc := #caller_location) -> ^T #no_bounds_check {
-    runtime.bounds_check_error_loc(loc, i, len(grid^))
+	runtime.bounds_check_error_loc(loc, i, len(grid^))
 	return &grid.data[i]
 }
 @require_results
 ptr_idx_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int) -> (cell: ^T, ok: bool) {
-    inside_idx(grid^, i) or_return
+	inside_idx(grid^, i) or_return
 	return &grid.data[i], true
 }
 
 set :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, v: T, loc := #caller_location) #no_bounds_check {
-    runtime.bounds_check_error_loc(loc, p.x, grid.x)
-    runtime.bounds_check_error_loc(loc, p.y, grid.y)
+	runtime.bounds_check_error_loc(loc, p.x, grid.x)
+	runtime.bounds_check_error_loc(loc, p.y, grid.y)
 	grid.data[p.x + p.y * grid.x] = v
 }
 set_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, v: T) -> (ok: bool) {
-    inside(grid, p) or_return
+	inside(grid, p) or_return
 	grid.data[p.x + p.y * grid.x] = v
 }
 
 set_idx :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T, loc := #caller_location) #no_bounds_check {
-    runtime.bounds_check_error_loc(loc, i, len(grid^))
+	runtime.bounds_check_error_loc(loc, i, len(grid^))
 	grid.data[i] = v
 }
 set_idx_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T) -> (ok: bool) {
-    (i >= 0 && i < len(grid^)) or_return
+	(i >= 0 && i < len(grid^)) or_return
 	grid.data[i] = v
 }
 
@@ -170,22 +170,22 @@ are_diagonal :: proc (a, b: Coord) -> bool {
 @require_results
 next_surrounding_cell :: proc "contextless" (#no_broadcast p: Coord) -> Coord {
 
-    l := max(abs(p.x), abs(p.y))
-    f := abs(abs(p.x) - abs(p.y))
-    d := l-f
+	l := max(abs(p.x), abs(p.y))
+	f := abs(abs(p.x) - abs(p.y))
+	d := l-f
 
-    switch p {
-    case { d,  l}: return {-l, -d-1} if f > 0 else {-l-1, 0}
-    case { d, -l}: return { d,  l}
-    case {-d,  l}: return { d, -l}
-    case {-d, -l}: return {-d,  l}
-    case { l,  d}: return {-d, -l}
-    case { l, -d}: return { l,  d}
-    case {-l,  d}: return { l, -d}
-    case {-l, -d}: return {-l,  d}
-    }
+	switch p {
+	case { d,  l}: return {-l, -d-1} if f > 0 else {-l-1, 0}
+	case { d, -l}: return { d,  l}
+	case {-d,  l}: return { d, -l}
+	case {-d, -l}: return {-d,  l}
+	case { l,  d}: return {-d, -l}
+	case { l, -d}: return { l,  d}
+	case {-l,  d}: return { l, -d}
+	case {-l, -d}: return {-l,  d}
+	}
 
-    unreachable()
+	unreachable()
 }
 
 /*
