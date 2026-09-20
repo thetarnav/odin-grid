@@ -1,3 +1,4 @@
+#+test
 package grid_path
 
 import "core:testing"
