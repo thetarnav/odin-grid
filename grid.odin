@@ -3,16 +3,13 @@ package grid
 import "base:builtin"
 import "base:runtime"
 
-import slice_pkg "core:slice"
-import "core:math/linalg"
+@require import slice_pkg "core:slice"
 
 
 Grid :: struct ($T: typeid) {
-	data: [^]T,
+	data:       [^]T,
 	using size: [2]int,
 }
-
-Coord :: [2]int
 
 @require_results
 make_empty :: proc (
@@ -45,178 +42,148 @@ delete :: proc (grid: Grid($T)) {
 }
 
 @require_results
-to_idx :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> int {
-	return p.x + p.y * grid.x
+grid_view :: proc "contextless" (grid: ^Grid($T), pos, end: Coord, loc := #caller_location) -> Grid_View(T) {
+	runtime.bounds_check_error_loc(loc, pos.x, grid.x+1)
+	runtime.bounds_check_error_loc(loc, pos.y, grid.y+1)
+	runtime.bounds_check_error_loc(loc, end.x, grid.x+1)
+	runtime.bounds_check_error_loc(loc, end.y, grid.y+1)
+	runtime.bounds_check_error_loc(loc, pos.x, end.x+1)
+	runtime.bounds_check_error_loc(loc, pos.y, end.y+1)
+	return {grid^, idx(grid^, pos), idx(grid^, end)}
 }
-idx :: to_idx
 @require_results
-to_idx_safe :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> (i: int, ok: bool) {
-	return p.x + p.y * grid.x, inside(grid, p)
+grid_view_till_end :: proc "contextless" (grid: ^Grid($T), pos: Coord, loc := #caller_location) -> Grid_View(T) {
+	runtime.bounds_check_error_loc(loc, pos.x, grid.x+1)
+	runtime.bounds_check_error_loc(loc, pos.y, grid.y+1)
+	return {grid^, idx(grid^, pos), len(grid)}
 }
-idx_safe :: to_idx_safe
+@require_results
+grid_view_whole :: proc "contextless" (grid: ^Grid($T)) -> Grid_View(T) {
+	return {grid^, 0, len(grid^)}
+}
 
 @require_results
-to_x :: #force_inline proc "contextless" (grid: Grid($T), #any_int i: int) -> int {
+grid_view_safe :: proc "contextless" (grid: ^Grid($T), pos, end: Coord, loc := #caller_location) -> (view: Grid_View(T), ok: bool) {
+	inside(grid^, pos) or_return
+	inside(grid^, end) or_return
+	if pos > end do return
+	return {grid, idx(grid^, pos), idx(grid^, end)}, true
+}
+@require_results
+grid_view_till_end_safe :: proc "contextless" (grid: ^Grid($T), pos: Coord, loc := #caller_location) -> (view: Grid_View(T), ok: bool) {
+	inside(grid^, pos) or_return
+	return {grid^, idx(grid^, pos), len(grid^)}, true
+}
+
+@require_results
+grid_to_idx :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> int {
+	return p.x + p.y * grid.x
+}
+grid_idx :: to_idx
+@require_results
+grid_to_idx_safe :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> (i: int, ok: bool) {
+	return p.x + p.y * grid.x, inside(grid, p)
+}
+grid_idx_safe :: to_idx_safe
+
+@require_results
+grid_to_x :: #force_inline proc "contextless" (grid: Grid($T), #any_int i: int) -> int {
 	return i % grid.x
 }
 @require_results
-to_y :: #force_inline proc "contextless" (grid: Grid($T), #any_int i: int) -> int {
+grid_to_y :: #force_inline proc "contextless" (grid: Grid($T), #any_int i: int) -> int {
 	return i / grid.x
 }
 @require_results
-to_xy :: #force_inline proc "contextless" (grid: Grid($T), #any_int i: int) -> (p: Coord) {
+grid_to_xy :: #force_inline proc "contextless" (grid: Grid($T), #any_int i: int) -> (p: Coord) {
 	return {i % grid.x, i / grid.size.x}
 }
-to_coord :: to_xy
-coord    :: to_xy
+grid_to_coord :: to_xy
+grid_coord    :: to_xy
 
 @require_results
-get :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord, loc := #caller_location) -> T #no_bounds_check {
+grid_get :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord, loc := #caller_location) -> T #no_bounds_check {
 	runtime.bounds_check_error_loc(loc, p.x, grid.x)
 	runtime.bounds_check_error_loc(loc, p.y, grid.y)
 	return grid.data[p.x + p.y * grid.x]
 }
 @require_results
-get_safe :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> (cell: T, ok: bool) {
+grid_get_safe :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> (cell: T, ok: bool) {
 	inside(grid, p) or_return
 	return grid.data[p.x + p.y * grid.x], true
 }
 
 @require_results
-ptr :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, loc := #caller_location) -> ^T #no_bounds_check {
+grid_ptr :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, loc := #caller_location) -> ^T #no_bounds_check {
 	runtime.bounds_check_error_loc(loc, p.x, grid.x)
 	runtime.bounds_check_error_loc(loc, p.y, grid.y)
 	return &grid.data[p.x + p.y * grid.x]
 }
 @require_results
-ptr_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord) -> (cell: ^T, ok: bool) {
+grid_ptr_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord) -> (cell: ^T, ok: bool) {
 	inside(grid^, p) or_return
 	return &grid.data[p.x + p.y * grid.x], true
 }
 @require_results
-ptr_idx :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, loc := #caller_location) -> ^T #no_bounds_check {
+grid_ptr_idx :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, loc := #caller_location) -> ^T #no_bounds_check {
 	runtime.bounds_check_error_loc(loc, i, len(grid^))
 	return &grid.data[i]
 }
 @require_results
-ptr_idx_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int) -> (cell: ^T, ok: bool) {
+grid_ptr_idx_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int) -> (cell: ^T, ok: bool) {
 	inside_idx(grid^, i) or_return
 	return &grid.data[i], true
 }
 
-set :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, v: T, loc := #caller_location) #no_bounds_check {
+grid_set :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, v: T, loc := #caller_location) #no_bounds_check {
 	runtime.bounds_check_error_loc(loc, p.x, grid.x)
 	runtime.bounds_check_error_loc(loc, p.y, grid.y)
 	grid.data[p.x + p.y * grid.x] = v
 }
-set_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, v: T) -> (ok: bool) {
+grid_set_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #no_broadcast p: Coord, v: T) -> (ok: bool) {
 	inside(grid, p) or_return
 	grid.data[p.x + p.y * grid.x] = v
 }
 
-set_idx :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T, loc := #caller_location) #no_bounds_check {
+grid_set_idx :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T, loc := #caller_location) #no_bounds_check {
 	runtime.bounds_check_error_loc(loc, i, len(grid^))
 	grid.data[i] = v
 }
-set_idx_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T) -> (ok: bool) {
+grid_set_idx_safe :: #force_inline proc "contextless" (grid: ^Grid($T), #any_int i: int, v: T) -> (ok: bool) {
 	(i >= 0 && i < len(grid^)) or_return
 	grid.data[i] = v
 }
 
 @require_results
-inside :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> bool {
+grid_inside :: #force_inline proc "contextless" (grid: Grid($T), #no_broadcast p: Coord) -> bool {
 	return uint(p.x) < uint(grid.x) && uint(p.y) < uint(grid.y)
 }
 @require_results
-inside_idx :: #force_inline proc "contextless" (grid: Grid($T), #any_int idx: int) -> bool {
+grid_inside_idx :: #force_inline proc "contextless" (grid: Grid($T), #any_int idx: int) -> bool {
 	return uint(idx) < uint(len(grid))
 }
-in_bounds     :: inside
-in_bounds_idx :: inside_idx
+grid_in_bounds     :: inside
+grid_in_bounds_idx :: inside_idx
 
 @require_results
-len :: #force_inline proc "contextless" (grid: Grid($T)) -> int {
+grid_size :: #force_inline proc "contextless" (grid: Grid($T)) -> [2]int {
+	return grid.size
+}
+
+@require_results
+grid_len :: #force_inline proc "contextless" (grid: Grid($T)) -> int {
 	return grid.x*grid.y
 }
 
 @require_results
-slice :: #force_inline proc "contextless" (grid: Grid($T)) -> []T {
+grid_slice :: #force_inline proc "contextless" (grid: Grid($T)) -> []T {
 	return grid.data[:grid.x*grid.y]
 }
 
-zero :: proc (grid: ^Grid($T)) {
+grid_zero :: proc (grid: ^Grid($T)) {
 	slice_pkg.zero(slice(grid^))
 }
 
-fill :: proc (grid: ^Grid($T), v: T) {
+grid_fill :: proc (grid: ^Grid($T), v: T) {
 	slice_pkg.fill(slice(grid^), v)
 }
-
-@require_results
-distance :: proc (a, b: Coord) -> f32 {
-	return linalg.distance(([2]f32)(a), ([2]f32)(b))
-}
-
-@require_results
-manhattan_distance :: proc (a, b: Coord) -> int {
-	return abs(a.x - b.x) + abs(a.y - b.y)
-}
-
-@require_results
-are_diagonal :: proc (a, b: Coord) -> bool {
-	return abs(a.x - b.x) == abs(a.y - b.y)
-}
-
-@require_results
-next_surrounding_cell :: proc "contextless" (#no_broadcast p: Coord) -> Coord {
-
-	l := max(abs(p.x), abs(p.y))
-	f := abs(abs(p.x) - abs(p.y))
-	d := l-f
-
-	switch p {
-	case { d,  l}: return {-l, -d-1} if f > 0 else {-l-1, 0}
-	case { d, -l}: return { d,  l}
-	case {-d,  l}: return { d, -l}
-	case {-d, -l}: return {-d,  l}
-	case { l,  d}: return {-d, -l}
-	case { l, -d}: return { l,  d}
-	case {-l,  d}: return { l, -d}
-	case {-l, -d}: return {-l,  d}
-	}
-
-	unreachable()
-}
-
-/*
-	NW N NE
-	 W    E
-	SW S SE
-*/
-Direction :: enum u8 {
-	N,   E, S,   W,
-	NE, SE, SW, NW,
-}
-
-DIRECTIONS            :: [8]Direction{
-	.N,   .E, .S,   .W,
-	.NE, .SE, .SW, .NW,
-}
-DIRECTIONS_ORTHOGONAL :: [4]Direction{
-	.N,   .E, .S,   .W,
-}
-DIRECTIONS_DIAGNOAL   :: [4]Direction{
-	.NE, .SE, .SW, .NW,
-}
-
-DIRECTION_VECTORS :: [Direction][2]int{
-	.N  = { 0, -1},
-	.E  = { 1,  0},
-	.S  = { 0,  1},
-	.W  = {-1,  0},
-	.NE = { 1, -1},
-	.SE = { 1,  1},
-	.SW = {-1,  1},
-	.NW = {-1, -1},
-}
-
