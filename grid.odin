@@ -42,20 +42,18 @@ delete :: proc (grid: Grid($T)) {
 }
 
 @require_results
-grid_view :: proc "contextless" (grid: ^Grid($T), pos, end: Coord, loc := #caller_location) -> Grid_View(T) {
-	runtime.bounds_check_error_loc(loc, pos.x, grid.x+1)
-	runtime.bounds_check_error_loc(loc, pos.y, grid.y+1)
-	runtime.bounds_check_error_loc(loc, end.x, grid.x+1)
-	runtime.bounds_check_error_loc(loc, end.y, grid.y+1)
-	runtime.bounds_check_error_loc(loc, pos.x, end.x+1)
-	runtime.bounds_check_error_loc(loc, pos.y, end.y+1)
-	return {grid^, idx(grid^, pos), idx(grid^, end)}
+grid_view :: proc "contextless" (grid: ^Grid($T), pos, size: Coord, loc := #caller_location) -> Grid_View(T) {
+	runtime.bounds_check_error_loc(loc, pos.x, grid.x)
+	runtime.bounds_check_error_loc(loc, pos.y, grid.y)
+	runtime.bounds_check_error_loc(loc, pos.x+size.x-1, grid.x)
+	runtime.bounds_check_error_loc(loc, pos.y+size.y-1, grid.y)
+	return {grid^, idx(grid^, pos), idx(grid^, pos+size-1) + 1 - idx(grid^, pos)}
 }
 @require_results
 grid_view_till_end :: proc "contextless" (grid: ^Grid($T), pos: Coord, loc := #caller_location) -> Grid_View(T) {
-	runtime.bounds_check_error_loc(loc, pos.x, grid.x+1)
-	runtime.bounds_check_error_loc(loc, pos.y, grid.y+1)
-	return {grid^, idx(grid^, pos), len(grid)}
+	runtime.bounds_check_error_loc(loc, pos.x, grid.x)
+	runtime.bounds_check_error_loc(loc, pos.y, grid.y)
+	return {grid^, idx(grid^, pos), len(grid)-idx(grid^, pos)}
 }
 @require_results
 grid_view_whole :: proc "contextless" (grid: ^Grid($T)) -> Grid_View(T) {
@@ -63,16 +61,15 @@ grid_view_whole :: proc "contextless" (grid: ^Grid($T)) -> Grid_View(T) {
 }
 
 @require_results
-grid_view_safe :: proc "contextless" (grid: ^Grid($T), pos, end: Coord, loc := #caller_location) -> (view: Grid_View(T), ok: bool) {
+grid_view_safe :: proc "contextless" (grid: ^Grid($T), pos, size: Coord, loc := #caller_location) -> (view: Grid_View(T), ok: bool) {
 	inside(grid^, pos) or_return
-	inside(grid^, end) or_return
-	if pos > end do return
-	return {grid, idx(grid^, pos), idx(grid^, end)}, true
+	inside(grid^, pos+size-1) or_return
+	return {grid, idx(grid^, pos), idx(grid^, pos+size-1) + 1 - idx(grid^, pos)}, true
 }
 @require_results
 grid_view_till_end_safe :: proc "contextless" (grid: ^Grid($T), pos: Coord, loc := #caller_location) -> (view: Grid_View(T), ok: bool) {
 	inside(grid^, pos) or_return
-	return {grid^, idx(grid^, pos), len(grid^)}, true
+	return {grid^, idx(grid^, pos), len(grid^)-idx(grid^, pos)}, true
 }
 
 @require_results
@@ -176,14 +173,37 @@ grid_len :: #force_inline proc "contextless" (grid: Grid($T)) -> int {
 }
 
 @require_results
-grid_slice :: #force_inline proc "contextless" (grid: Grid($T)) -> []T {
+grid_slice_whole :: #force_inline proc "contextless" (grid: Grid($T)) -> []T {
 	return grid.data[:grid.x*grid.y]
 }
+@require_results
+grid_slice_pos_end :: #force_inline proc "contextless" (grid: Grid($T), pos, end: Coord) -> []T {
+	return grid.data[idx(grid, pos):idx(grid, end)]
+}
+@require_results
+grid_slice_pos :: #force_inline proc "contextless" (grid: Grid($T), pos: Coord) -> []T {
+	return grid.data[idx(grid, pos):grid.x*grid.y]
+}
+grid_slice :: proc {grid_slice_whole, grid_slice_pos_end, grid_slice_pos}
 
-grid_zero :: proc (grid: ^Grid($T)) {
+grid_zero_whole :: proc (grid: ^Grid($T)) {
 	slice_pkg.zero(slice(grid^))
 }
+grid_zero_pos_end :: proc (grid: ^Grid($T), pos, end: Coord) {
+	slice_pkg.zero(slice(grid^, pos, end))
+}
+grid_zero_pos :: proc (grid: ^Grid($T), pos: Coord) {
+	slice_pkg.zero(slice(grid^, pos))
+}
+grid_zero :: proc {grid_zero_whole, grid_zero_pos_end, grid_zero_pos}
 
-grid_fill :: proc (grid: ^Grid($T), v: T) {
+grid_fill_whole :: proc (grid: ^Grid($T), v: T) {
 	slice_pkg.fill(slice(grid^), v)
 }
+grid_fill_pos_end :: proc (grid: ^Grid($T), pos, end: Coord, v: T) {
+	slice_pkg.fill(slice(grid^, pos, end), v)
+}
+grid_fill_pos :: proc (grid: ^Grid($T), pos: Coord, v: T) {
+	slice_pkg.fill(slice(grid^, pos), v)
+}
+grid_fill :: proc {grid_fill_whole, grid_fill_pos_end, grid_fill_pos}

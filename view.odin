@@ -7,7 +7,7 @@ package grid
 
 Grid_View :: struct ($T: typeid) {
 	grid:     Grid(T),
-	pos, end: int,
+	pos, len: int,
 }
 
 @require_results
@@ -90,9 +90,9 @@ view_set_idx_safe :: #force_inline proc "contextless" (grid: ^Grid_View($T), #an
 }
 
 @require_results
-view_inside :: #force_inline proc "contextless" (view: Grid_View($T), #no_broadcast pos: Coord) -> bool {
-	p, s := view_pos(view), view_size(view)
-	return uint(pos.x-p.x) < uint(s.x) && uint(pos.y-p.y) < uint(s.y)
+view_inside :: #force_inline proc "contextless" (view: Grid_View($T), #no_broadcast p: Coord) -> bool {
+	size := view_size(view)
+	return uint(p.x) < uint(size.x) && uint(p.y) < uint(size.y)
 }
 @require_results
 view_inside_idx :: #force_inline proc "contextless" (view: Grid_View($T), #any_int idx: int) -> bool {
@@ -113,10 +113,13 @@ view_y :: #force_inline proc "contextless" (view: Grid_View($T)) -> int {
 view_pos :: #force_inline proc "contextless" (view: Grid_View($T)) -> Coord {
 	return coord(view.grid, view.pos)
 }
-
+@require_results
+view_end :: #force_inline proc "contextless" (view: Grid_View($T)) -> Coord {
+	return coord(view.grid, view.pos+view.len)
+}
 @require_results
 view_size :: #force_inline proc "contextless" (view: Grid_View($T)) -> [2]int {
-	return coord(view.grid, view.end-1) + 1 - coord(view.grid, view.pos)
+	return coord(view.grid, view.pos+view.len-1) + 1 - coord(view.grid, view.pos)
 }
 
 @require_results
@@ -124,15 +127,18 @@ view_len :: #force_inline proc "contextless" (grid: Grid_View($T)) -> int {
 	return grid.x*grid.y
 }
 
-@require_results
-view_slice :: #force_inline proc "contextless" (view: Grid_View($T)) -> []T {
-	return slice(view.grid)[view.pos:view.end]
+view_zero :: proc (view: ^Grid_View($T)) {
+	pos, size := view_pos(view^), view_size(view^)
+	for yi in pos.y ..< view.grid.size.y {
+		start := idx(view.grid, {pos.x, yi})
+		slice_pkg.zero(slice(view.grid)[start:][:size.x])
+	}
 }
 
-view_zero :: proc (grid: ^Grid_View($T)) {
-	slice_pkg.zero(slice(grid^))
-}
-
-view_fill :: proc (grid: ^Grid_View($T), v: T) {
-	slice_pkg.fill(slice(grid^), v)
+view_fill :: proc (view: ^Grid_View($T), v: T) {
+	pos, size := view_pos(view^), view_size(view^)
+	for yi in pos.y ..< view.grid.size.y {
+		start := idx(view.grid, {pos.x, yi})
+		slice_pkg.fill(slice(view.grid)[start:][:size.x], v)
+	}
 }

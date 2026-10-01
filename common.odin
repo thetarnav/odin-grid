@@ -39,9 +39,9 @@ in_bounds_idx :: inside_idx
 
 size          :: proc {grid_size, view_size}
 len           :: proc {grid_len, view_len}
-slice         :: proc {grid_slice, view_slice}
-zero          :: proc {grid_zero, view_zero}
-fill          :: proc {grid_fill, view_fill}
+slice         :: grid_slice
+zero          :: proc {grid_zero_whole, grid_zero_pos_end, grid_zero_pos, view_zero}
+fill          :: proc {grid_fill_whole, grid_fill_pos_end, grid_fill_pos, view_fill}
 
 @require_results
 distance :: proc (a, b: Coord) -> f32 {
