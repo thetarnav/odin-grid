@@ -14,7 +14,7 @@ Grid_Static :: struct ($X: int, $Y: int, $T: typeid) {
 
 @require_results
 static_grid :: proc "contextless" (grid: ^Grid_Static($X, $Y, $T)) -> Grid(T) {
-	return {cast([^]f32)&grid.data, {X, Y}}
+	return {cast([^]T)&grid.data, {X, Y}}
 }
 
 @require_results
