@@ -37,6 +37,20 @@ make_from_data :: proc (data: []$T, size: [2]int) -> (grid: Grid(T)) {
 
 make :: proc {make_empty, make_from_data}
 
+resize :: proc (
+	grid: ^Grid($T), size: [2]int,
+	allocator := context.allocator, loc := #caller_location,
+) -> (err: runtime.Allocator_Error) {
+	old_size := grid_size(grid^)
+	new_data := runtime.mem_resize(grid.data,
+		old_size = old_size.x * old_size.y * size_of(T),
+		new_size = size.x * size.y * size_of(T),
+		allocator=allocator, loc=loc) or_return
+	grid.data = auto_cast raw_data(new_data)
+	grid.size = size
+	return
+}
+
 delete :: proc (grid: Grid($T)) {
 	builtin.delete(grid.data[:grid.x*grid.y])
 }
